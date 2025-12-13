@@ -5,512 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ISGylation Mini Game</title>
   <style>
-    :root { --pad: 16px; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: #0b0f19;
-      color: #e9eefc;
-      display: grid;
-      place-items: center;
-      min-height: 100vh;
-      padding: var(--pad);
+    :root { --pad: 14px; }
+
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#0b0f19;
+      color:#e9eefc;
+      display:grid;
+      place-items:center;
+      min-height:100vh;
+      padding:var(--pad);
     }
-    .card {
-      width: min(820px, 100%);
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 18px;
-      padding: clamp(14px, 3vw, 22px);
+
+    .card{
+      width:min(860px,100%);
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:18px;
+      padding: clamp(12px, 2.5vw, 18px);
       box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
-    h1 { font-size: clamp(18px, 3.5vw, 26px); margin: 0 0 8px; }
-    p { margin: 0 0 14px; opacity: 0.9; line-height: 1.35; }
 
-    .play {
-      position: relative;
-      height: 420px;
+    h1{ font-size: clamp(18px, 3.2vw, 24px); margin:0 0 6px; }
+    p{ margin:0 0 12px; opacity:.9; line-height:1.35; font-size: 14px; }
+
+    .play{
+      position:relative;
+      height: 360px;
       border-radius: 16px;
       background:
-        radial-gradient(1200px 500px at 20% 10%, rgba(120,160,255,0.18), transparent 60%),
-        radial-gradient(900px 400px at 80% 90%, rgba(120,255,200,0.12), transparent 60%),
+        radial-gradient(1000px 420px at 20% 10%, rgba(120,160,255,0.16), transparent 60%),
+        radial-gradient(800px 360px at 80% 90%, rgba(120,255,200,0.11), transparent 60%),
         rgba(255,255,255,0.04);
       border: 1px dashed rgba(255,255,255,0.18);
-      overflow: hidden;
-      touch-action: none;
+      overflow:hidden;
+      touch-action:none;
     }
 
-    /* ===== Protein particles (big) ===== */
-    .protein {
-      position: absolute;
-      width: 260px;          /* big proteins */
-      height: 150px;
-      border-radius: 30% 35% 45% 30% / 50% 35% 60% 40%;
+    /* ===== Proteins (smaller than before) ===== */
+    .protein{
+      position:absolute;
+      width: 210px;
+      height: 118px;
       border: 1px solid rgba(255,255,255,0.12);
-      filter: drop-shadow(0 14px 18px rgba(0,0,0,0.25));
-      user-select: none;
-      pointer-events: none; /* proteins shouldn't block dragging */
+      filter: drop-shadow(0 12px 16px rgba(0,0,0,0.22));
+      user-select:none;
+      pointer-events:none; /* don't block dragging */
+      transform: rotate(var(--rot, 0deg));
+      border-radius: var(--br, 30% 35% 45% 30% / 50% 35% 60% 40%);
     }
-    .protein.host {
-      background: linear-gradient(135deg, rgba(220,220,230,0.18), rgba(255,255,255,0.06));
+    .protein.host{
+      background: linear-gradient(135deg, rgba(220,220,230,0.16), rgba(255,255,255,0.05));
     }
-    .protein.viral {
-      background: linear-gradient(135deg, rgba(255,120,120,0.22), rgba(255,255,255,0.05));
-      border-color: rgba(255,140,140,0.25);
+    .protein.viral{
+      background: linear-gradient(135deg, rgba(255,110,110,0.22), rgba(255,255,255,0.04));
+      border-color: rgba(255,140,140,0.22);
     }
-
-    .protein .label {
-      position: absolute;
-      left: 12px;
-      bottom: 10px;
+    .protein .label{
+      position:absolute;
+      left:10px;
+      bottom:8px;
       font-size: 12px;
-      opacity: 0.75;
+      opacity: 0.78;
+      letter-spacing: 0.1px;
     }
 
-    /* Lysine nub sticking out */
-    .lysine-target {
-      position: absolute;
-      width: 64px;
-      height: 64px;
+    /* Lysine target (K nub sticking out) */
+    .lysine-target{
+      position:absolute;
+      width: 52px;
+      height: 52px;
       border-radius: 999px;
-      background: rgba(255, 220, 120, 0.18);
-      border: 2px solid rgba(255, 220, 120, 0.65);
-      display: grid;
-      place-items: center;
-      box-shadow: 0 0 0 0 rgba(255, 220, 120, 0.0);
-      transition: transform .15s ease, box-shadow .2s ease;
-      pointer-events: none;
+      background: rgba(255,220,120,0.17);
+      border: 2px solid rgba(255,220,120,0.62);
+      display:grid;
+      place-items:center;
+      transition: transform .12s ease, box-shadow .18s ease, opacity .18s ease;
+      pointer-events:none;
     }
-    .lysine-target .k {
+    .lysine-target::before{
+      content:"";
+      position:absolute;
+      left: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,220,120,0.32);
+      border: 1px solid rgba(255,220,120,0.28);
+    }
+    .lysine-target .k{
       font-weight: 900;
-      font-size: 20px;
+      font-size: 18px;
       color: rgba(255,240,200,0.95);
       line-height: 1;
       margin-top: -2px;
     }
-
-    /* Little stalk that makes it look like it "sticks out" */
-    .lysine-target::before {
-      content: "";
-      position: absolute;
-      left: -22px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 26px;
-      height: 14px;
-      border-radius: 999px;
-      background: rgba(255, 220, 120, 0.35);
-      border: 1px solid rgba(255, 220, 120, 0.35);
-    }
-
-    .lysine-target.hot {
+    .lysine-target.hot{
       transform: scale(1.06);
-      box-shadow: 0 0 0 10px rgba(255, 220, 120, 0.10);
+      box-shadow: 0 0 0 9px rgba(255,220,120,0.10);
+    }
+    .lysine-target.done{
+      background: rgba(120,255,200,0.14);
+      border-color: rgba(120,255,200,0.55);
+    }
+    .lysine-target.done::before{
+      background: rgba(120,255,200,0.22);
+      border-color: rgba(120,255,200,0.22);
+    }
+    .lysine-target.done .k{
+      color: rgba(200,255,240,0.95);
+    }
+    .lysine-target.disabled{
+      opacity: 0.35;
+      filter: grayscale(0.4);
     }
 
-    /* ===== ISG15 (small, 5x-ish smaller than proteins) ===== */
-    .isg15 {
-      position: absolute;
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background:
-        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), transparent 45%),
-        linear-gradient(135deg, rgba(120,170,255,0.92), rgba(120,255,220,0.70));
-      border: 1px solid rgba(255,255,255,0.22);
-      box-shadow: 0 10px 16px rgba(0,0,0,0.32);
-      display: grid;
-      place-items: center;
-      cursor: grab;
-      user-select: none;
-      touch-action: none;
-      z-index: 10;
-    }
-    .isg15:active { cursor: grabbing; }
-
-    /* ISG15 "G" nub sticking out */
-    .isg15 .g-nub {
-      position: absolute;
-      right: -18px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 34px;
-      height: 28px;
-      border-radius: 999px;
-      background: rgba(120,255,220,0.28);
-      border: 1px solid rgba(255,255,255,0.18);
-      display: grid;
-      place-items: center;
-      font-weight: 900;
-      color: rgba(15,20,35,0.85);
-      font-size: 14px;
-    }
-    .isg15 b { font-size: 10px; color: rgba(15,20,35,0.9); letter-spacing: 0.2px; }
-
-    .hud {
-      display:flex;
-      gap:10px;
-      flex-wrap: wrap;
-      align-items:center;
-      margin-top: 12px;
-    }
-    .pill {
-      font-size: 12px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      opacity: 0.92;
-    }
-    button {
-      margin-left: auto;
-      font-size: 12px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      color: #e9eefc;
-    }
-
-    .legend {
-      display:flex;
-      gap:10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-      font-size: 12px;
-      opacity: 0.9;
-    }
-    .dot { display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:6px; }
-    .dot.host { background: rgba(230,230,245,0.35); border: 1px solid rgba(255,255,255,0.20); }
-    .dot.viral { background: rgba(255,120,120,0.45); border: 1px solid rgba(255,160,160,0.25); }
-
-    /* Modal */
-    .modal {
-      position: fixed; inset: 0;
-      display: none; place-items: center;
-      background: rgba(0,0,0,0.55);
-      padding: 18px;
-      z-index: 50;
-    }
-    .modal.show { display: grid; }
-    .modal .box {
-      width: min(560px, 100%);
-      background: #101a2f;
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
-    }
-    .box h2 { margin: 0 0 8px; font-size: 18px; }
-    .box .msg { font-size: 15px; line-height: 1.4; opacity: 0.95; white-space: pre-wrap; }
-    .box .row { display:flex; gap:10px; margin-top: 14px; justify-content: flex-end; }
-  </style>
-</head>
-
-<body>
-  <div class="card">
-    <h1>ISGylation: conjugate ISG15 to lysine (K)</h1>
-    <p>Drag the small <b>ISG15</b> (with <b>G</b>) onto any sticking-out <b>K</b> on the drifting proteins. Conjugation unlocks your Secret Santa hint 🎁</p>
-
-    <div class="play" id="play" aria-label="Play area"></div>
-
-    <div class="legend">
-      <span><span class="dot host"></span>Host proteins</span>
-      <span><span class="dot viral"></span>Viral proteins</span>
-    </div>
-
-    <div class="hud">
-      <div class="pill" id="status">Status: not conjugated</div>
-      <div class="pill">Tip: aim for the K nub</div>
-      <button id="reset">Reset</button>
-    </div>
-  </div>
-
-  <div class="modal" id="modal" role="dialog" aria-modal="true">
-    <div class="box">
-      <h2>✅ ISG15 conjugated!</h2>
-      <div class="msg" id="msg"></div>
-      <div class="row">
-        <button id="close">Close</button>
-      </div>
-    </div>
-  </div>
-
-<script>
-  // ===== Customizable message (fallback if no URL param is provided) =====
-  const DEFAULT_MESSAGE =
-`Your present is hidden:
-👉 (edit this message in index.html)
-or set it via the URL like ?msg=Your%20present%20is%20...`;
-
-  // URL param override (?msg=...)
-  const params = new URLSearchParams(location.search);
-  const REVEAL_MESSAGE = params.get("msg") ? decodeURIComponent(params.get("msg")) : DEFAULT_MESSAGE;
-
-  const play = document.getElementById("play");
-
-  const status = document.getElementById("status");
-  const modal = document.getElementById("modal");
-  const msg = document.getElementById("msg");
-  const resetBtn = document.getElementById("reset");
-  const closeBtn = document.getElementById("close");
-
-  let dragging = false;
-  let solved = false;
-
-  // ---- Build proteins (some host, some viral) ----
-  const proteins = [];
-  const N = 6;
-
-  function mkProtein(i, kind) {
-    const p = document.createElement("div");
-    p.className = `protein ${kind}`;
-    p.style.left = "0px";
-    p.style.top = "0px";
-
-    const label = document.createElement("div");
-    label.className = "label";
-    label.textContent = kind === "viral" ? "Viral protein" : "Host protein";
-    p.appendChild(label);
-
-    // Lysine target + nub
-    const k = document.createElement("div");
-    k.className = "lysine-target";
-    k.innerHTML = `<div class="k">K</div>`;
-    p.appendChild(k);
-
-    play.appendChild(p);
-
-    return { el: p, kEl: k, kind };
-  }
-
-  function rand(min, max){ return min + Math.random() * (max - min); }
-
-  function layoutInitial() {
-    const pr = play.getBoundingClientRect();
-    // protein size is fixed in CSS; read it from DOM after adding one
-    proteins.forEach((obj, idx) => {
-      const r = obj.el.getBoundingClientRect();
-      obj.x = rand(10, Math.max(10, pr.width - r.width - 10));
-      obj.y = rand(10, Math.max(10, pr.height - r.height - 10));
-
-      // slow diffusion velocities
-      obj.vx = rand(-0.08, 0.08);
-      obj.vy = rand(-0.08, 0.08);
-
-      // place lysine on the right edge, slightly above center
-      obj.kx = r.width - 32;  // inside protein, but nub sticks out via ::before
-      obj.ky = r.height * 0.38;
-    });
-  }
-
-  // Create proteins: mix of host + viral
-  for (let i = 0; i < N; i++) {
-    const kind = (i % 3 === 0) ? "viral" : "host"; // 2 viral out of 6
-    proteins.push(mkProtein(i, kind));
-  }
-
-  // ---- ISG15 token ----
-  const isg15 = document.createElement("div");
-  isg15.className = "isg15";
-  isg15.innerHTML = `<b>ISG15</b><div class="g-nub">G</div>`;
-  play.appendChild(isg15);
-
-  // initial ISG position
-  function setIsgPos(x, y) {
-    const pr = play.getBoundingClientRect();
-    const ir = isg15.getBoundingClientRect();
-    const minX = 0, minY = 0;
-    const maxX = pr.width - ir.width;
-    const maxY = pr.height - ir.height;
-    const cx = Math.min(Math.max(x, minX), maxX);
-    const cy = Math.min(Math.max(y, minY), maxY);
-    isg15.style.left = cx + "px";
-    isg15.style.top  = cy + "px";
-  }
-
-  // pointer drag
-  let offsetX = 0, offsetY = 0;
-
-  isg15.addEventListener("pointerdown", (e) => {
-    if (solved) return;
-    dragging = true;
-    isg15.setPointerCapture(e.pointerId);
-    const ir = isg15.getBoundingClientRect();
-    const pr = play.getBoundingClientRect();
-    offsetX = (e.clientX - ir.left);
-    offsetY = (e.clientY - ir.top);
-    // slight pause by damping velocities while dragging (makes it easier)
-    proteins.forEach(p => { p.vx *= 0.5; p.vy *= 0.5; });
-  });
-
-  isg15.addEventListener("pointermove", (e) => {
-    if (!dragging || solved) return;
-    const pr = play.getBoundingClientRect();
-    setIsgPos((e.clientX - pr.left) - offsetX, (e.clientY - pr.top) - offsetY);
-    checkHit();
-  });
-
-  isg15.addEventListener("pointerup", () => {
-    if (!dragging || solved) return;
-    dragging = false;
-    if (checkHit(true)) reveal();
-    else clearHot();
-  });
-
-  function clearHot() {
-    proteins.forEach(p => p.kEl.classList.remove("hot"));
-  }
-
-  function getCenters() {
-    const pr = play.getBoundingClientRect();
-    const ir = isg15.getBoundingClientRect();
-    const ix = (parseFloat(isg15.style.left || "0") + ir.width/2);
-    const iy = (parseFloat(isg15.style.top  || "0") + ir.height/2);
-    return { pr, ir, ix, iy };
-  }
-
-  function checkHit(commit = false) {
-    const { ix, iy } = getCenters();
-    let any = false;
-
-    proteins.forEach(p => {
-      // lysine position in play coordinates:
-      const kx = p.x + p.kx + 32; // center-ish
-      const ky = p.y + p.ky + 32;
-
-      const dist = Math.hypot(ix - kx, iy - ky);
-
-      // generous hit radius so it's fun on mobile
-      const hit = dist < 42;
-      p.kEl.classList.toggle("hot", hit);
-      if (hit) any = true;
-    });
-
-    return any;
-  }
-
-  function centerIsgOnHit() {
-    const { ir } = getCenters();
-    // choose closest lysine
-    const ix = parseFloat(isg15.style.left || "0") + ir.width/2;
-    const iy = parseFloat(isg15.style.top  || "0") + ir.height/2;
-
-    let best = null;
-    let bestD = Infinity;
-
-    proteins.forEach(p => {
-      const kx = p.x + p.kx + 32;
-      const ky = p.y + p.ky + 32;
-      const d = Math.hypot(ix - kx, iy - ky);
-      if (d < bestD) { bestD = d; best = { kx, ky }; }
-    });
-
-    if (best) {
-      setIsgPos(best.kx - ir.width/2, best.ky - ir.height/2);
-    }
-  }
-
-  function reveal() {
-    solved = true;
-    status.textContent = "Status: conjugated ✅";
-    clearHot();
-    centerIsgOnHit();
-    isg15.style.pointerEvents = "none";
-    msg.textContent = REVEAL_MESSAGE;
-    modal.classList.add("show");
-    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
-  }
-
-  function reset() {
-    solved = false;
-    dragging = false;
-    status.textContent = "Status: not conjugated";
-    isg15.style.pointerEvents = "auto";
-    modal.classList.remove("show");
-    clearHot();
-    // restore slow random velocities
-    proteins.forEach(p => {
-      p.vx = rand(-0.08, 0.08);
-      p.vy = rand(-0.08, 0.08);
-    });
-    // reset positions
-    layoutInitial();
-    setIsgPos(30, play.getBoundingClientRect().height - 90);
-  }
-
-  resetBtn.addEventListener("click", reset);
-  closeBtn.addEventListener("click", () => modal.classList.remove("show"));
-  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
-
-  // ---- Diffusion animation ----
-  let lastT = null;
-  function tick(t) {
-    if (lastT == null) lastT = t;
-    const dt = Math.min(32, t - lastT); // ms
-    lastT = t;
-
-    const pr = play.getBoundingClientRect();
-
-    if (!solved) {
-      proteins.forEach(p => {
-        const r = p.el.getBoundingClientRect(); // size
-        // tiny random walk drift (Brownian-ish)
-        p.vx += rand(-0.003, 0.003);
-        p.vy += rand(-0.003, 0.003);
-
-        // clamp speed (very slow)
-        const maxV = 0.10;
-        p.vx = Math.max(Math.min(p.vx, maxV), -maxV);
-        p.vy = Math.max(Math.min(p.vy, maxV), -maxV);
-
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-
-        // bounce off edges
-        if (p.x < 6) { p.x = 6; p.vx *= -1; }
-        if (p.y < 6) { p.y = 6; p.vy *= -1; }
-        const maxX = pr.width - 260 - 6;  // protein width from CSS
-        const maxY = pr.height - 150 - 6; // protein height from CSS
-        if (p.x > maxX) { p.x = maxX; p.vx *= -1; }
-        if (p.y > maxY) { p.y = maxY; p.vy *= -1; }
-
-        // apply transforms
-        p.el.style.left = p.x + "px";
-        p.el.style.top  = p.y + "px";
-
-        // place lysine within protein
-        p.kEl.style.left = p.kx + "px";
-        p.kEl.style.top  = p.ky + "px";
-      });
-
-      // while dragging, keep hit highlighting responsive
-      if (dragging) checkHit();
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  // init
-  window.addEventListener("load", () => {
-    layoutInitial();
-    setIsgPos(30, play.getBoundingClientRect().height - 90);
-    requestAnimationFrame(tick);
-  });
-
-  // handle resize
-  window.addEventListener("resize", () => {
-    // keep things inside bounds after resize
-    const pr = play.getBoundingClientRect();
-    proteins.forEach(p => {
-      p.x = Math.min(Math.max(p.x, 6), pr.width - 260 - 6);
-      p.y = Math.min(Math.max(p.y, 6), pr.height - 150 - 6);
-    });
-    const ir = isg15.getBoundingClientRect();
-    const x = parseFloat(isg15.style.left || "0");
-    const y = parseFloat(isg15.style.top || "0");
-    setIsgPos(x, y);
-  });
-</script>
-</body>
-</html>
+    /* ===== ISG15 tokens (peanut + GG moti*
