@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISGylation Mini Game</title>
+  <style>
+    :root { --pad: 16px; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #0b0f19; color: #e9eefc; display: grid; place-items: center; min-height: 100vh;
+      padding: var(--pad);
+    }
+    .card {
+      width: min(720px, 100%);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: clamp(14px, 3vw, 22px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    h1 { font-size: clamp(18px, 3.5vw, 26px); margin: 0 0 8px; }
+    p { margin: 0 0 14px; opacity: 0.9; line-height: 1.35; }
+
+    .play {
+      position: relative;
+      height: 360px;
+      border-radius: 16px;
+      background: radial-gradient(1200px 400px at 20% 10%, rgba(120,160,255,0.18), transparent 60%),
+                  radial-gradient(800px 300px at 80% 90%, rgba(120,255,200,0.12), transparent 60%),
+                  rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.18);
+      overflow: hidden;
+      touch-action: none; /* important for mobile dragging */
+    }
+
+    /* “Protein” blob */
+    .protein {
+      position: absolute;
+      left: 52%; top: 52%;
+      transform: translate(-50%, -50%);
+      width: 78%;
+      max-width: 520px;
+      aspect-ratio: 16 / 9;
+      border-radius: 30% 35% 45% 30% / 50% 35% 60% 40%;
+      background: linear-gradient(135deg, rgba(220,220,230,0.18), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.12);
+      filter: drop-shadow(0 14px 18px rgba(0,0,0,0.25));
+    }
+    .protein::after{
+      content:"Protein substrate";
+      position:absolute; inset:auto 12px 10px 12px;
+      font-size: 12px; opacity: 0.75;
+    }
+
+    /* Lysine target */
+    .lysine {
+      position: absolute;
+      left: 63%; top: 40%;
+      width: 74px; height: 74px;
+      border-radius: 999px;
+      background: rgba(255, 220, 120, 0.18);
+      border: 2px solid rgba(255, 220, 120, 0.65);
+      display: grid; place-items: center;
+      box-shadow: 0 0 0 0 rgba(255, 220, 120, 0.0);
+      transition: transform .15s ease, box-shadow .2s ease;
+      user-select: none;
+    }
+    .lysine span {
+      font-weight: 800; font-size: 22px; letter-spacing: 0.5px;
+      color: rgba(255,240,200,0.95);
+    }
+    .lysine small { display:block; font-size: 10px; opacity: 0.85; margin-top: -2px; }
+
+    .lysine.hot {
+      transform: scale(1.06);
+      box-shadow: 0 0 0 10px rgba(255, 220, 120, 0.10);
+    }
+
+    /* ISG15 token */
+    .isg15 {
+      position: absolute;
+      left: 14%; top: 62%;
+      width: 92px; height: 92px;
+      border-radius: 24px;
+      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), transparent 45%),
+                  linear-gradient(135deg, rgba(120,170,255,0.9), rgba(120,255,220,0.65));
+      border: 1px solid rgba(255,255,255,0.22);
+      box-shadow: 0 12px 18px rgba(0,0,0,0.32);
+      display: grid; place-items: center;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    .isg15:active { cursor: grabbing; }
+    .isg15 b { font-size: 14px; color: rgba(15,20,35,0.9); }
+    .isg15 em { display:block; font-style: normal; font-size: 10px; opacity: 0.85; margin-top: 2px; }
+
+    .hud {
+      display:flex; gap:10px; flex-wrap: wrap; align-items:center;
+      margin-top: 12px;
+    }
+    .pill {
+      font-size: 12px; padding: 8px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      opacity: 0.92;
+    }
+    button {
+      margin-left: auto;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: #e9eefc;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0;
+      display: none; place-items: center;
+      background: rgba(0,0,0,0.55);
+      padding: 18px;
+    }
+    .modal.show { display: grid; }
+    .modal .box {
+      width: min(560px, 100%);
+      background: #101a2f;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    }
+    .box h2 { margin: 0 0 8px; font-size: 18px; }
+    .box .msg { font-size: 15px; line-height: 1.4; opacity: 0.95; white-space: pre-wrap; }
+    .box .row { display:flex; gap:10px; margin-top: 14px; justify-content: flex-end; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>ISGylation: conjugate ISG15 to a lysine</h1>
+    <p>Drag <b>ISG15</b> onto the lysine (<b>K</b>) on the protein. Once conjugated, you’ll unlock your Secret Santa hint 🎁</p>
+
+    <div class="play" id="play">
+      <div class="protein" aria-hidden="true"></div>
+
+      <div class="lysine" id="lysine" aria-label="Lysine target">
+        <div style="text-align:center">
+          <span>K</span>
+          <small>lysine</small>
+        </div>
+      </div>
+
+      <div class="isg15" id="isg15" role="button" aria-label="ISG15 draggable">
+        <div style="text-align:center">
+          <b>ISG15</b>
+          <em>drag me</em>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="pill" id="status">Status: not conjugated</div>
+      <div class="pill">Tip: aim for the K circle</div>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h2>✅ ISG15 conjugated!</h2>
+      <div class="msg" id="msg"></div>
+      <div class="row">
+        <button id="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ====== Customize the default message here (fallback if no URL param is provided) ======
+  const DEFAULT_MESSAGE =
+`Your present is hidden:
+👉 (edit this message in index.html)
+or set it via the URL like ?msg=Your%20present%20is%20...`;
+
+  // Read ?msg= from the URL so you can change the hint without editing the file
+  const params = new URLSearchParams(location.search);
+  const REVEAL_MESSAGE = params.get("msg") ? decodeURIComponent(params.get("msg")) : DEFAULT_MESSAGE;
+
+  const play = document.getElementById("play");
+  const isg15 = document.getElementById("isg15");
+  const lysine = document.getElementById("lysine");
+  const status = document.getElementById("status");
+  const modal = document.getElementById("modal");
+  const msg = document.getElementById("msg");
+  const resetBtn = document.getElementById("reset");
+  const closeBtn = document.getElementById("close");
+
+  let dragging = false;
+  let solved = false;
+  let offsetX = 0, offsetY = 0;
+
+  function rect(el){ return el.getBoundingClientRect(); }
+
+  function setIsgPos(x, y) {
+    const pr = rect(play);
+    const ir = rect(isg15);
+    // constrain within play area
+    const minX = pr.left;
+    const minY = pr.top;
+    const maxX = pr.right - ir.width;
+    const maxY = pr.bottom - ir.height;
+    const cx = Math.min(Math.max(x, minX), maxX);
+    const cy = Math.min(Math.max(y, minY), maxY);
+
+    // convert to play-local coordinates
+    isg15.style.left = (cx - pr.left) + "px";
+    isg15.style.top  = (cy - pr.top) + "px";
+  }
+
+  function centerOnTarget() {
+    const pr = rect(play);
+    const lr = rect(lysine);
+    const ir = rect(isg15);
+    const x = lr.left + lr.width/2 - ir.width/2;
+    const y = lr.top  + lr.height/2 - ir.height/2;
+    setIsgPos(x, y);
+  }
+
+  function checkHit() {
+    const lr = rect(lysine);
+    const ir = rect(isg15);
+
+    const ix = ir.left + ir.width/2;
+    const iy = ir.top + ir.height/2;
+
+    const lx = lr.left + lr.width/2;
+    const ly = lr.top + lr.height/2;
+
+    const dist = Math.hypot(ix - lx, iy - ly);
+    const hit = dist < (lr.width * 0.42); // tolerance
+    lysine.classList.toggle("hot", hit);
+    return hit;
+  }
+
+  function reveal() {
+    solved = true;
+    status.textContent = "Status: conjugated ✅";
+    lysine.classList.remove("hot");
+    centerOnTarget();
+    isg15.style.pointerEvents = "none";
+    msg.textContent = REVEAL_MESSAGE;
+    modal.classList.add("show");
+    // tiny celebration (vibration on mobile if available)
+    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+  }
+
+  function reset() {
+    solved = false;
+    status.textContent = "Status: not conjugated";
+    isg15.style.pointerEvents = "auto";
+    isg15.style.left = "";
+    isg15.style.top  = "";
+    lysine.classList.remove("hot");
+    modal.classList.remove("show");
+  }
+
+  isg15.addEventListener("pointerdown", (e) => {
+    if (solved) return;
+    dragging = true;
+    isg15.setPointerCapture(e.pointerId);
+    const ir = rect(isg15);
+    offsetX = e.clientX - ir.left;
+    offsetY = e.clientY - ir.top;
+  });
+
+  isg15.addEventListener("pointermove", (e) => {
+    if (!dragging || solved) return;
+    setIsgPos(e.clientX - offsetX, e.clientY - offsetY);
+    checkHit();
+  });
+
+  isg15.addEventListener("pointerup", () => {
+    if (!dragging || solved) return;
+    dragging = false;
+    if (checkHit()) reveal();
+    else lysine.classList.remove("hot");
+  });
+
+  resetBtn.addEventListener("click", reset);
+  closeBtn.addEventListener("click", () => modal.classList.remove("show"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
+
+  // Make sure it starts placed nicely (works regardless of screen size)
+  window.addEventListener("load", () => {
+    // Set initial position explicitly for consistent mobile behavior
+    const pr = rect(play);
+    setIsgPos(pr.left + pr.width*0.10, pr.top + pr.height*0.60);
+  });
+</script>
+</body>
+</html>
