@@ -18,8 +18,9 @@
       padding:var(--pad);
     }
 
+    /* a bit wider so the playground can feel ~2x bigger on desktop */
     .card{
-      width:min(860px,100%);
+      width:min(1400px,100%);
       background:rgba(255,255,255,0.06);
       border:1px solid rgba(255,255,255,0.10);
       border-radius:18px;
@@ -30,28 +31,29 @@
     h1{ font-size: clamp(18px, 3.2vw, 24px); margin:0 0 6px; }
     p{ margin:0 0 12px; opacity:.9; line-height:1.35; font-size: 14px; }
 
+    /* playground twice the size (height doubled; width grows with card) */
     .play{
       position:relative;
-      height: 360px;
+      height: 720px; /* 2x */
       border-radius: 16px;
       background:
-        radial-gradient(1000px 420px at 20% 10%, rgba(120,160,255,0.16), transparent 60%),
-        radial-gradient(800px 360px at 80% 90%, rgba(120,255,200,0.11), transparent 60%),
+        radial-gradient(1200px 520px at 20% 10%, rgba(120,160,255,0.16), transparent 60%),
+        radial-gradient(900px 420px at 80% 90%, rgba(120,255,200,0.11), transparent 60%),
         rgba(255,255,255,0.04);
       border: 1px dashed rgba(255,255,255,0.18);
       overflow:hidden;
       touch-action:none;
     }
 
-    /* ===== Proteins (smaller than before) ===== */
+    /* ===== Proteins (half size) ===== */
     .protein{
       position:absolute;
-      width: 210px;
-      height: 118px;
+      width: 105px;  /* was 210 */
+      height: 59px;  /* was 118 */
       border: 1px solid rgba(255,255,255,0.12);
-      filter: drop-shadow(0 12px 16px rgba(0,0,0,0.22));
+      filter: drop-shadow(0 10px 14px rgba(0,0,0,0.20));
       user-select:none;
-      pointer-events:none; /* don't block dragging */
+      pointer-events:none;
       transform: rotate(var(--rot, 0deg));
       border-radius: var(--br, 30% 35% 45% 30% / 50% 35% 60% 40%);
     }
@@ -64,18 +66,22 @@
     }
     .protein .label{
       position:absolute;
-      left:10px;
-      bottom:8px;
-      font-size: 12px;
-      opacity: 0.78;
+      left:8px;
+      bottom:6px;
+      font-size: 10px; /* smaller so it fits */
+      opacity: 0.80;
       letter-spacing: 0.1px;
+      white-space: nowrap;
+      max-width: calc(100% - 12px);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* Lysine target (K nub sticking out) */
+    /* Lysine target (scaled down to match smaller proteins) */
     .lysine-target{
       position:absolute;
-      width: 52px;
-      height: 52px;
+      width: 36px;
+      height: 36px;
       border-radius: 999px;
       background: rgba(255,220,120,0.17);
       border: 2px solid rgba(255,220,120,0.62);
@@ -87,25 +93,25 @@
     .lysine-target::before{
       content:"";
       position:absolute;
-      left: -18px;
+      left: -14px;
       top: 50%;
       transform: translateY(-50%);
-      width: 22px;
-      height: 12px;
+      width: 16px;
+      height: 9px;
       border-radius: 999px;
       background: rgba(255,220,120,0.32);
       border: 1px solid rgba(255,220,120,0.28);
     }
     .lysine-target .k{
       font-weight: 900;
-      font-size: 18px;
+      font-size: 13px;
       color: rgba(255,240,200,0.95);
       line-height: 1;
-      margin-top: -2px;
+      margin-top: -1px;
     }
     .lysine-target.hot{
-      transform: scale(1.06);
-      box-shadow: 0 0 0 9px rgba(255,220,120,0.10);
+      transform: scale(1.08);
+      box-shadow: 0 0 0 8px rgba(255,220,120,0.10);
     }
     .lysine-target.done{
       background: rgba(120,255,200,0.14);
@@ -123,7 +129,7 @@
       filter: grayscale(0.4);
     }
 
-    /* ===== ISG15 tokens (peanut + GG motif) ===== */
+    /* ===== ISG15 tokens (UNCHANGED SIZE) ===== */
     .isg15{
       position:absolute;
       width: 44px;
@@ -136,7 +142,6 @@
     }
     .isg15:active{ cursor: grabbing; }
 
-    /* peanut lobes */
     .isg15 .lobe{
       position:absolute;
       top:0;
@@ -149,7 +154,6 @@
     .isg15 .lobe.left{ left:0; }
     .isg15 .lobe.right{ right:0; }
 
-    /* subtle highlight */
     .isg15 .shine{
       position:absolute;
       left: 6px;
@@ -162,7 +166,6 @@
       opacity: 0.9;
     }
 
-    /* GG motif nub sticking out */
     .isg15 .gg-nub{
       position:absolute;
       right: -18px;
@@ -297,32 +300,30 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
   const resetBtn = document.getElementById("reset");
   const closeBtn = document.getElementById("close");
 
+  // ===== Sizes (keep in sync with CSS) =====
+  const PROTEIN_W = 105;
+  const PROTEIN_H = 59;
+  const K_SIZE = 36;
+
   // ===== Game content definitions =====
-  // 10 proteins total:
-  // Host (7): 4 ISGylatable targets + 3 not ISGylated
-  // Viral (3): red, ISGylatable, named "Viral protein"
   const proteinDefs = [
-    // ISGylatable host targets (4)
     { kind: "host", name: "RNF213",   isgylatable: true  },
     { kind: "host", name: "ALDH1A1",  isgylatable: true  },
     { kind: "host", name: "MX1",      isgylatable: true  },
     { kind: "host", name: "IFIT3",    isgylatable: true  },
 
-    // Not ISGylated host proteins (3)
     { kind: "host", name: "Actin",    isgylatable: false },
     { kind: "host", name: "Paxilin",  isgylatable: false },
     { kind: "host", name: "GAPDH",    isgylatable: false },
 
-    // Viral proteins (3) - ISGylatable, name stays "Viral protein"
     { kind: "viral", name: "Viral protein", isgylatable: true },
     { kind: "viral", name: "Viral protein", isgylatable: true },
     { kind: "viral", name: "Viral protein", isgylatable: true },
   ];
 
-  const TARGET_TOTAL = proteinDefs.filter(p => p.isgylatable).length; // should be 7
+  const TARGET_TOTAL = proteinDefs.filter(p => p.isgylatable).length; // 7
   const ISG15_COUNT = 10;
 
-  // Different shapes (border-radius) & rotations to make each protein unique
   const shapeStyles = [
     { br: "34% 28% 44% 30% / 52% 36% 60% 40%", rot: "-2deg" },
     { br: "26% 40% 36% 32% / 48% 42% 56% 44%", rot: "1deg" },
@@ -360,13 +361,12 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
 
     const label = document.createElement("div");
     label.className = "label";
-    label.textContent = def.name + (def.isgylatable ? "" : " (not ISGylated)");
+    label.textContent = def.name; // removed "(not ISGylated)" suffix
     el.appendChild(label);
 
     const k = document.createElement("div");
     k.className = "lysine-target";
     k.innerHTML = `<div class="k">K</div>`;
-    // if not isgylatable, visually dim the K so it’s clear it won’t count
     if (!def.isgylatable) k.classList.add("disabled");
     el.appendChild(k);
 
@@ -380,9 +380,9 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
       x: 0, y: 0,
       vx: rand(-0.07, 0.07),
       vy: rand(-0.07, 0.07),
-      // place lysine nub near the right edge, slightly above center
-      kx: 210 - 28,
-      ky: 118 * 0.34,
+      // K circle should stick out a bit to the right
+      kx: PROTEIN_W - (K_SIZE / 2),
+      ky: PROTEIN_H * 0.30,
     };
   }
 
@@ -404,18 +404,16 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
   function layoutInitial(){
     const pr = play.getBoundingClientRect();
 
-    // lay out proteins in random positions (avoid edges a bit)
     proteins.forEach((p) => {
-      p.x = rand(10, Math.max(10, pr.width  - 210 - 10));
-      p.y = rand(10, Math.max(10, pr.height - 118 - 10));
+      p.x = rand(10, Math.max(10, pr.width  - PROTEIN_W - 10));
+      p.y = rand(10, Math.max(10, pr.height - PROTEIN_H - 10));
       p.el.style.left = p.x + "px";
       p.el.style.top  = p.y + "px";
       p.kEl.style.left = p.kx + "px";
       p.kEl.style.top  = p.ky + "px";
     });
 
-    // place 10 ISG15 tokens along bottom-left as a little “pool”
-    // (they can be dragged anywhere)
+    // ISG15 pool
     const baseX = 14;
     const baseY = pr.height - 46;
     isgTokens.forEach((tok, i) => {
@@ -438,21 +436,13 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
 
   function tokenCenter(tokenEl){
     const ir = tokenEl.getBoundingClientRect();
-    const pr = play.getBoundingClientRect();
     const left = parseFloat(tokenEl.style.left || "0");
     const top  = parseFloat(tokenEl.style.top  || "0");
-    return {
-      cx: left + ir.width/2,
-      cy: top  + ir.height/2,
-      w: ir.width,
-      h: ir.height,
-      pr
-    };
+    return { cx: left + ir.width/2, cy: top + ir.height/2, w: ir.width, h: ir.height };
   }
 
   function closestTargetForToken(tokenEl){
     const { cx, cy } = tokenCenter(tokenEl);
-
     let best = null;
     let bestD = Infinity;
 
@@ -460,9 +450,8 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
       if (!p.def.isgylatable) return;
       if (p.conjugated) return;
 
-      // lysine center in play coords
-      const kx = p.x + p.kx + 26;
-      const ky = p.y + p.ky + 26;
+      const kx = p.x + p.kx + (K_SIZE/2);
+      const ky = p.y + p.ky + (K_SIZE/2);
       const d = Math.hypot(cx - kx, cy - ky);
       if (d < bestD){
         bestD = d;
@@ -483,10 +472,10 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
         return;
       }
       const { cx, cy } = tokenCenter(tokenEl);
-      const kx = p.x + p.kx + 26;
-      const ky = p.y + p.ky + 26;
+      const kx = p.x + p.kx + (K_SIZE/2);
+      const ky = p.y + p.ky + (K_SIZE/2);
       const d = Math.hypot(cx - kx, cy - ky);
-      const hit = d < 40; // forgiving for mobile
+      const hit = d < 40;
       p.kEl.classList.toggle("hot", hit);
       if (hit) any = true;
     });
@@ -496,8 +485,8 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
 
   function snapTokenToProtein(tokenEl, protein){
     const { w, h } = tokenCenter(tokenEl);
-    const kx = protein.x + protein.kx + 26;
-    const ky = protein.y + protein.ky + 26;
+    const kx = protein.x + protein.kx + (K_SIZE/2);
+    const ky = protein.y + protein.ky + (K_SIZE/2);
     tokenEl.style.left = (kx - w/2) + "px";
     tokenEl.style.top  = (ky - h/2) + "px";
   }
@@ -510,7 +499,6 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
       msg.textContent = REVEAL_MESSAGE;
       modal.classList.add("show");
       if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
-      // lock all remaining tokens
       isgTokens.forEach(t => {
         t.el.classList.add("locked");
         t.el.style.pointerEvents = "none";
@@ -545,7 +533,6 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
     offsetX = e.clientX - ir.left;
     offsetY = e.clientY - ir.top;
 
-    // slightly slow proteins while dragging to make it easier
     proteins.forEach(p => { p.vx *= 0.6; p.vy *= 0.6; });
   }
 
@@ -564,14 +551,12 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
     dragging = false;
     clearHot();
 
-    // If close enough to an un-conjugated ISGylatable protein -> conjugate
     if (any && best && best.d < 40){
       const p = best.p;
       p.conjugated = true;
       p.kEl.classList.add("done");
       p.kEl.innerHTML = `<div class="k">K✓</div>`;
 
-      // lock this token and snap it to the K
       activeToken.locked = true;
       activeToken.el.classList.add("locked");
       snapTokenToProtein(activeToken.el, p);
@@ -596,23 +581,21 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
 
     if (!solved){
       proteins.forEach(p => {
-        // tiny Brownian-ish drift
         p.vx += rand(-0.003, 0.003);
         p.vy += rand(-0.003, 0.003);
 
-        const maxV = 0.095; // very slow
+        const maxV = 0.095;
         p.vx = Math.max(Math.min(p.vx, maxV), -maxV);
         p.vy = Math.max(Math.min(p.vy, maxV), -maxV);
 
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        // bounce
         if (p.x < 6) { p.x = 6; p.vx *= -1; }
         if (p.y < 6) { p.y = 6; p.vy *= -1; }
 
-        const maxX = pr.width  - 210 - 6;
-        const maxY = pr.height - 118 - 6;
+        const maxX = pr.width  - PROTEIN_W - 6;
+        const maxY = pr.height - PROTEIN_H - 6;
 
         if (p.x > maxX) { p.x = maxX; p.vx *= -1; }
         if (p.y > maxY) { p.y = maxY; p.vy *= -1; }
@@ -623,36 +606,30 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
         p.kEl.style.top  = p.ky + "px";
       });
 
-      // keep already-conjugated tokens glued to their proteins as proteins move
-      // (find which token is snapped by checking lock + overlap with done targets)
+      // keep conjugated tokens glued
       isgTokens.forEach(tok => {
         if (!tok.locked) return;
 
-        // find the protein whose K is closest (stable enough for this scale)
-        const best = (() => {
-          let b=null, bd=Infinity;
-          const ir = tok.el.getBoundingClientRect();
-          const left = parseFloat(tok.el.style.left || "0");
-          const top  = parseFloat(tok.el.style.top  || "0");
-          const cx = left + ir.width/2;
-          const cy = top  + ir.height/2;
+        let best = null;
+        let bestD = Infinity;
 
-          proteins.forEach(p => {
-            if (!p.conjugated) return;
-            const kx = p.x + p.kx + 26;
-            const ky = p.y + p.ky + 26;
-            const d = Math.hypot(cx - kx, cy - ky);
-            if (d < bd){ bd=d; b=p; }
-          });
-          return b;
-        })();
+        const ir = tok.el.getBoundingClientRect();
+        const left = parseFloat(tok.el.style.left || "0");
+        const top  = parseFloat(tok.el.style.top  || "0");
+        const cx = left + ir.width/2;
+        const cy = top  + ir.height/2;
 
-        if (best){
-          snapTokenToProtein(tok.el, best);
-        }
+        proteins.forEach(p => {
+          if (!p.conjugated) return;
+          const kx = p.x + p.kx + (K_SIZE/2);
+          const ky = p.y + p.ky + (K_SIZE/2);
+          const d = Math.hypot(cx - kx, cy - ky);
+          if (d < bestD){ bestD = d; best = p; }
+        });
+
+        if (best) snapTokenToProtein(tok.el, best);
       });
 
-      // while dragging, keep highlight responsive
       if (dragging && activeToken) highlightTargets(activeToken.el);
     }
 
@@ -686,8 +663,8 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
 
   // ===== Init =====
-  // build proteins + tokens
   proteinDefs.forEach((def, idx) => proteins.push(mkProtein(def, idx)));
+
   for (let i = 0; i < ISG15_COUNT; i++){
     const tok = mkISG15Token(i);
     tok.el.addEventListener("pointerdown", onTokenDown);
@@ -703,11 +680,10 @@ or set it via the URL like ?msg=Your%20present%20is%20...`;
   });
 
   window.addEventListener("resize", () => {
-    // keep everything within bounds on resize
     const pr = play.getBoundingClientRect();
     proteins.forEach(p => {
-      p.x = Math.min(Math.max(p.x, 6), pr.width  - 210 - 6);
-      p.y = Math.min(Math.max(p.y, 6), pr.height - 118 - 6);
+      p.x = Math.min(Math.max(p.x, 6), pr.width  - PROTEIN_W - 6);
+      p.y = Math.min(Math.max(p.y, 6), pr.height - PROTEIN_H - 6);
     });
     isgTokens.forEach(tok => {
       const ir = tok.el.getBoundingClientRect();
