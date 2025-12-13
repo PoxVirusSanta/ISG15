@@ -123,4 +123,602 @@
       filter: grayscale(0.4);
     }
 
-    /* ===== ISG15 tokens (peanut + GG moti*
+    /* ===== ISG15 tokens (peanut + GG motif) ===== */
+    .isg15{
+      position:absolute;
+      width: 44px;
+      height: 28px;
+      cursor: grab;
+      user-select:none;
+      touch-action:none;
+      z-index: 10;
+      filter: drop-shadow(0 10px 14px rgba(0,0,0,0.28));
+    }
+    .isg15:active{ cursor: grabbing; }
+
+    /* peanut lobes */
+    .isg15 .lobe{
+      position:absolute;
+      top:0;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255,105,180,0.90);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .isg15 .lobe.left{ left:0; }
+    .isg15 .lobe.right{ right:0; }
+
+    /* subtle highlight */
+    .isg15 .shine{
+      position:absolute;
+      left: 6px;
+      top: 5px;
+      width: 12px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.22);
+      filter: blur(0.2px);
+      opacity: 0.9;
+    }
+
+    /* GG motif nub sticking out */
+    .isg15 .gg-nub{
+      position:absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 26px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(120,255,220,0.22);
+      border: 1px solid rgba(255,255,255,0.18);
+      display:grid;
+      place-items:center;
+      font-weight: 900;
+      font-size: 11px;
+      color: rgba(15,20,35,0.85);
+      letter-spacing: 0.2px;
+    }
+
+    .isg15.locked{
+      cursor: default;
+      opacity: 0.92;
+      pointer-events: none;
+    }
+
+    .hud{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      align-items:center;
+      margin-top: 10px;
+    }
+    .pill{
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      opacity: 0.92;
+    }
+    button{
+      margin-left:auto;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color:#e9eefc;
+    }
+
+    .legend{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .dot{ display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:6px; }
+    .dot.host{ background: rgba(230,230,245,0.35); border: 1px solid rgba(255,255,255,0.20); }
+    .dot.viral{ background: rgba(255,120,120,0.45); border: 1px solid rgba(255,160,160,0.25); }
+    .dot.target{ background: rgba(255,220,120,0.40); border: 1px solid rgba(255,220,120,0.35); }
+    .dot.done{ background: rgba(120,255,200,0.40); border: 1px solid rgba(120,255,200,0.28); }
+
+    /* Modal */
+    .modal{
+      position:fixed; inset:0;
+      display:none; place-items:center;
+      background: rgba(0,0,0,0.55);
+      padding: 18px;
+      z-index: 50;
+    }
+    .modal.show{ display:grid; }
+    .modal .box{
+      width: min(560px, 100%);
+      background:#101a2f;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    }
+    .box h2{ margin:0 0 8px; font-size:18px; }
+    .box .msg{ font-size: 15px; line-height:1.4; opacity:0.95; white-space: pre-wrap; }
+    .box .row{ display:flex; gap:10px; margin-top: 14px; justify-content: flex-end; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>ISGylation: tag all ISGylatable proteins</h1>
+    <p>Drag peanut-shaped <b>ISG15</b> (with <b>GG</b>) onto the <b>K</b> nub. The hint appears only when <b>all ISGylatable proteins</b> are ISGylated.</p>
+
+    <div class="play" id="play" aria-label="Play area"></div>
+
+    <div class="legend">
+      <span><span class="dot host"></span>Host proteins</span>
+      <span><span class="dot viral"></span>Viral proteins</span>
+      <span><span class="dot target"></span>ISGylatable (needs tagging)</span>
+      <span><span class="dot done"></span>Tagged</span>
+    </div>
+
+    <div class="hud">
+      <div class="pill" id="status">ISGylated: 0 / 7 targets</div>
+      <div class="pill">You have 10 ISG15 tokens</div>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h2>✅ All targets ISGylated!</h2>
+      <div class="msg" id="msg"></div>
+      <div class="row">
+        <button id="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===== Customizable message =====
+  const DEFAULT_MESSAGE =
+`Your present is hidden:
+👉 (edit this message in index.html)
+or set it via the URL like ?msg=Your%20present%20is%20...`;
+
+  const params = new URLSearchParams(location.search);
+  const REVEAL_MESSAGE = params.get("msg") ? decodeURIComponent(params.get("msg")) : DEFAULT_MESSAGE;
+
+  const play = document.getElementById("play");
+  const status = document.getElementById("status");
+  const modal = document.getElementById("modal");
+  const msg = document.getElementById("msg");
+  const resetBtn = document.getElementById("reset");
+  const closeBtn = document.getElementById("close");
+
+  // ===== Game content definitions =====
+  // 10 proteins total:
+  // Host (7): 4 ISGylatable targets + 3 not ISGylated
+  // Viral (3): red, ISGylatable, named "Viral protein"
+  const proteinDefs = [
+    // ISGylatable host targets (4)
+    { kind: "host", name: "RNF213",   isgylatable: true  },
+    { kind: "host", name: "ALDH1A1",  isgylatable: true  },
+    { kind: "host", name: "MX1",      isgylatable: true  },
+    { kind: "host", name: "IFIT3",    isgylatable: true  },
+
+    // Not ISGylated host proteins (3)
+    { kind: "host", name: "Actin",    isgylatable: false },
+    { kind: "host", name: "Paxilin",  isgylatable: false },
+    { kind: "host", name: "GAPDH",    isgylatable: false },
+
+    // Viral proteins (3) - ISGylatable, name stays "Viral protein"
+    { kind: "viral", name: "Viral protein", isgylatable: true },
+    { kind: "viral", name: "Viral protein", isgylatable: true },
+    { kind: "viral", name: "Viral protein", isgylatable: true },
+  ];
+
+  const TARGET_TOTAL = proteinDefs.filter(p => p.isgylatable).length; // should be 7
+  const ISG15_COUNT = 10;
+
+  // Different shapes (border-radius) & rotations to make each protein unique
+  const shapeStyles = [
+    { br: "34% 28% 44% 30% / 52% 36% 60% 40%", rot: "-2deg" },
+    { br: "26% 40% 36% 32% / 48% 42% 56% 44%", rot: "1deg" },
+    { br: "38% 26% 40% 30% / 54% 32% 62% 38%", rot: "2deg" },
+    { br: "30% 34% 28% 44% / 50% 40% 58% 42%", rot: "-1deg" },
+    { br: "42% 24% 36% 28% / 58% 30% 64% 36%", rot: "1deg" },
+    { br: "28% 44% 30% 34% / 46% 44% 58% 42%", rot: "-2deg" },
+    { br: "36% 30% 42% 26% / 56% 34% 62% 38%", rot: "2deg" },
+    { br: "24% 38% 34% 40% / 50% 38% 60% 44%", rot: "-1deg" },
+    { br: "40% 28% 30% 38% / 60% 32% 64% 36%", rot: "1deg" },
+    { br: "32% 36% 26% 44% / 52% 42% 58% 40%", rot: "-2deg" },
+  ];
+
+  // ===== State =====
+  const proteins = [];
+  const isgTokens = [];
+  let dragging = false;
+  let solved = false;
+  let activeToken = null;
+  let offsetX = 0, offsetY = 0;
+  let isgylatedCount = 0;
+
+  function rand(min, max){ return min + Math.random() * (max - min); }
+
+  function updateStatus(){
+    status.textContent = `ISGylated: ${isgylatedCount} / ${TARGET_TOTAL} targets`;
+  }
+
+  // ===== DOM builders =====
+  function mkProtein(def, idx){
+    const el = document.createElement("div");
+    el.className = `protein ${def.kind}`;
+    el.style.setProperty("--br", shapeStyles[idx]?.br || shapeStyles[0].br);
+    el.style.setProperty("--rot", shapeStyles[idx]?.rot || "0deg");
+
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = def.name + (def.isgylatable ? "" : " (not ISGylated)");
+    el.appendChild(label);
+
+    const k = document.createElement("div");
+    k.className = "lysine-target";
+    k.innerHTML = `<div class="k">K</div>`;
+    // if not isgylatable, visually dim the K so it’s clear it won’t count
+    if (!def.isgylatable) k.classList.add("disabled");
+    el.appendChild(k);
+
+    play.appendChild(el);
+
+    return {
+      def,
+      el,
+      kEl: k,
+      conjugated: false,
+      x: 0, y: 0,
+      vx: rand(-0.07, 0.07),
+      vy: rand(-0.07, 0.07),
+      // place lysine nub near the right edge, slightly above center
+      kx: 210 - 28,
+      ky: 118 * 0.34,
+    };
+  }
+
+  function mkISG15Token(i){
+    const t = document.createElement("div");
+    t.className = "isg15";
+    t.dataset.tokenId = String(i);
+    t.innerHTML = `
+      <div class="lobe left"></div>
+      <div class="lobe right"></div>
+      <div class="shine"></div>
+      <div class="gg-nub">GG</div>
+    `;
+    play.appendChild(t);
+    return { el: t, locked: false, x: 0, y: 0 };
+  }
+
+  // ===== Layout =====
+  function layoutInitial(){
+    const pr = play.getBoundingClientRect();
+
+    // lay out proteins in random positions (avoid edges a bit)
+    proteins.forEach((p) => {
+      p.x = rand(10, Math.max(10, pr.width  - 210 - 10));
+      p.y = rand(10, Math.max(10, pr.height - 118 - 10));
+      p.el.style.left = p.x + "px";
+      p.el.style.top  = p.y + "px";
+      p.kEl.style.left = p.kx + "px";
+      p.kEl.style.top  = p.ky + "px";
+    });
+
+    // place 10 ISG15 tokens along bottom-left as a little “pool”
+    // (they can be dragged anywhere)
+    const baseX = 14;
+    const baseY = pr.height - 46;
+    isgTokens.forEach((tok, i) => {
+      tok.locked = false;
+      tok.el.classList.remove("locked");
+      const col = i % 5;
+      const row = Math.floor(i / 5);
+      tok.x = baseX + col * 56;
+      tok.y = baseY - row * 44;
+      tok.el.style.left = tok.x + "px";
+      tok.el.style.top  = tok.y + "px";
+      tok.el.style.pointerEvents = "auto";
+    });
+  }
+
+  // ===== Hit test helpers =====
+  function clearHot(){
+    proteins.forEach(p => p.kEl.classList.remove("hot"));
+  }
+
+  function tokenCenter(tokenEl){
+    const ir = tokenEl.getBoundingClientRect();
+    const pr = play.getBoundingClientRect();
+    const left = parseFloat(tokenEl.style.left || "0");
+    const top  = parseFloat(tokenEl.style.top  || "0");
+    return {
+      cx: left + ir.width/2,
+      cy: top  + ir.height/2,
+      w: ir.width,
+      h: ir.height,
+      pr
+    };
+  }
+
+  function closestTargetForToken(tokenEl){
+    const { cx, cy } = tokenCenter(tokenEl);
+
+    let best = null;
+    let bestD = Infinity;
+
+    proteins.forEach(p => {
+      if (!p.def.isgylatable) return;
+      if (p.conjugated) return;
+
+      // lysine center in play coords
+      const kx = p.x + p.kx + 26;
+      const ky = p.y + p.ky + 26;
+      const d = Math.hypot(cx - kx, cy - ky);
+      if (d < bestD){
+        bestD = d;
+        best = { p, kx, ky, d };
+      }
+    });
+
+    return best;
+  }
+
+  function highlightTargets(tokenEl){
+    const best = closestTargetForToken(tokenEl);
+    let any = false;
+
+    proteins.forEach(p => {
+      if (!p.def.isgylatable || p.conjugated) {
+        p.kEl.classList.remove("hot");
+        return;
+      }
+      const { cx, cy } = tokenCenter(tokenEl);
+      const kx = p.x + p.kx + 26;
+      const ky = p.y + p.ky + 26;
+      const d = Math.hypot(cx - kx, cy - ky);
+      const hit = d < 40; // forgiving for mobile
+      p.kEl.classList.toggle("hot", hit);
+      if (hit) any = true;
+    });
+
+    return { any, best };
+  }
+
+  function snapTokenToProtein(tokenEl, protein){
+    const { w, h } = tokenCenter(tokenEl);
+    const kx = protein.x + protein.kx + 26;
+    const ky = protein.y + protein.ky + 26;
+    tokenEl.style.left = (kx - w/2) + "px";
+    tokenEl.style.top  = (ky - h/2) + "px";
+  }
+
+  // ===== Reveal =====
+  function tryReveal(){
+    if (solved) return;
+    if (isgylatedCount === TARGET_TOTAL){
+      solved = true;
+      msg.textContent = REVEAL_MESSAGE;
+      modal.classList.add("show");
+      if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+      // lock all remaining tokens
+      isgTokens.forEach(t => {
+        t.el.classList.add("locked");
+        t.el.style.pointerEvents = "none";
+      });
+      clearHot();
+    }
+  }
+
+  // ===== Interaction =====
+  function setTokenPos(tokenEl, x, y){
+    const pr = play.getBoundingClientRect();
+    const ir = tokenEl.getBoundingClientRect();
+    const minX = 0, minY = 0;
+    const maxX = pr.width  - ir.width;
+    const maxY = pr.height - ir.height;
+    const cx = Math.min(Math.max(x, minX), maxX);
+    const cy = Math.min(Math.max(y, minY), maxY);
+    tokenEl.style.left = cx + "px";
+    tokenEl.style.top  = cy + "px";
+  }
+
+  function onTokenDown(e){
+    const tokenEl = e.currentTarget;
+    const tokenObj = isgTokens.find(t => t.el === tokenEl);
+    if (!tokenObj || tokenObj.locked || solved) return;
+
+    dragging = true;
+    activeToken = tokenObj;
+    tokenEl.setPointerCapture(e.pointerId);
+
+    const ir = tokenEl.getBoundingClientRect();
+    offsetX = e.clientX - ir.left;
+    offsetY = e.clientY - ir.top;
+
+    // slightly slow proteins while dragging to make it easier
+    proteins.forEach(p => { p.vx *= 0.6; p.vy *= 0.6; });
+  }
+
+  function onTokenMove(e){
+    if (!dragging || !activeToken || solved) return;
+    const pr = play.getBoundingClientRect();
+    setTokenPos(activeToken.el, (e.clientX - pr.left) - offsetX, (e.clientY - pr.top) - offsetY);
+    highlightTargets(activeToken.el);
+  }
+
+  function onTokenUp(){
+    if (!dragging || !activeToken || solved) return;
+
+    const { any, best } = highlightTargets(activeToken.el);
+
+    dragging = false;
+    clearHot();
+
+    // If close enough to an un-conjugated ISGylatable protein -> conjugate
+    if (any && best && best.d < 40){
+      const p = best.p;
+      p.conjugated = true;
+      p.kEl.classList.add("done");
+      p.kEl.innerHTML = `<div class="k">K✓</div>`;
+
+      // lock this token and snap it to the K
+      activeToken.locked = true;
+      activeToken.el.classList.add("locked");
+      snapTokenToProtein(activeToken.el, p);
+      activeToken.el.style.pointerEvents = "none";
+
+      isgylatedCount += 1;
+      updateStatus();
+      tryReveal();
+    }
+
+    activeToken = null;
+  }
+
+  // ===== Diffusion animation =====
+  let lastT = null;
+  function tick(t){
+    if (lastT == null) lastT = t;
+    const dt = Math.min(32, t - lastT);
+    lastT = t;
+
+    const pr = play.getBoundingClientRect();
+
+    if (!solved){
+      proteins.forEach(p => {
+        // tiny Brownian-ish drift
+        p.vx += rand(-0.003, 0.003);
+        p.vy += rand(-0.003, 0.003);
+
+        const maxV = 0.095; // very slow
+        p.vx = Math.max(Math.min(p.vx, maxV), -maxV);
+        p.vy = Math.max(Math.min(p.vy, maxV), -maxV);
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        // bounce
+        if (p.x < 6) { p.x = 6; p.vx *= -1; }
+        if (p.y < 6) { p.y = 6; p.vy *= -1; }
+
+        const maxX = pr.width  - 210 - 6;
+        const maxY = pr.height - 118 - 6;
+
+        if (p.x > maxX) { p.x = maxX; p.vx *= -1; }
+        if (p.y > maxY) { p.y = maxY; p.vy *= -1; }
+
+        p.el.style.left = p.x + "px";
+        p.el.style.top  = p.y + "px";
+        p.kEl.style.left = p.kx + "px";
+        p.kEl.style.top  = p.ky + "px";
+      });
+
+      // keep already-conjugated tokens glued to their proteins as proteins move
+      // (find which token is snapped by checking lock + overlap with done targets)
+      isgTokens.forEach(tok => {
+        if (!tok.locked) return;
+
+        // find the protein whose K is closest (stable enough for this scale)
+        const best = (() => {
+          let b=null, bd=Infinity;
+          const ir = tok.el.getBoundingClientRect();
+          const left = parseFloat(tok.el.style.left || "0");
+          const top  = parseFloat(tok.el.style.top  || "0");
+          const cx = left + ir.width/2;
+          const cy = top  + ir.height/2;
+
+          proteins.forEach(p => {
+            if (!p.conjugated) return;
+            const kx = p.x + p.kx + 26;
+            const ky = p.y + p.ky + 26;
+            const d = Math.hypot(cx - kx, cy - ky);
+            if (d < bd){ bd=d; b=p; }
+          });
+          return b;
+        })();
+
+        if (best){
+          snapTokenToProtein(tok.el, best);
+        }
+      });
+
+      // while dragging, keep highlight responsive
+      if (dragging && activeToken) highlightTargets(activeToken.el);
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // ===== Reset =====
+  function reset(){
+    solved = false;
+    dragging = false;
+    activeToken = null;
+    isgylatedCount = 0;
+    updateStatus();
+    modal.classList.remove("show");
+
+    proteins.forEach(p => {
+      p.conjugated = false;
+      p.kEl.classList.remove("done", "hot");
+      p.kEl.innerHTML = `<div class="k">K</div>`;
+      p.vx = rand(-0.07, 0.07);
+      p.vy = rand(-0.07, 0.07);
+      if (!p.def.isgylatable) p.kEl.classList.add("disabled");
+      else p.kEl.classList.remove("disabled");
+    });
+
+    layoutInitial();
+  }
+
+  resetBtn.addEventListener("click", reset);
+  closeBtn.addEventListener("click", () => modal.classList.remove("show"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
+
+  // ===== Init =====
+  // build proteins + tokens
+  proteinDefs.forEach((def, idx) => proteins.push(mkProtein(def, idx)));
+  for (let i = 0; i < ISG15_COUNT; i++){
+    const tok = mkISG15Token(i);
+    tok.el.addEventListener("pointerdown", onTokenDown);
+    tok.el.addEventListener("pointermove", onTokenMove);
+    tok.el.addEventListener("pointerup", onTokenUp);
+    isgTokens.push(tok);
+  }
+
+  window.addEventListener("load", () => {
+    updateStatus();
+    layoutInitial();
+    requestAnimationFrame(tick);
+  });
+
+  window.addEventListener("resize", () => {
+    // keep everything within bounds on resize
+    const pr = play.getBoundingClientRect();
+    proteins.forEach(p => {
+      p.x = Math.min(Math.max(p.x, 6), pr.width  - 210 - 6);
+      p.y = Math.min(Math.max(p.y, 6), pr.height - 118 - 6);
+    });
+    isgTokens.forEach(tok => {
+      const ir = tok.el.getBoundingClientRect();
+      const x = parseFloat(tok.el.style.left || "0");
+      const y = parseFloat(tok.el.style.top  || "0");
+      const maxX = pr.width  - ir.width;
+      const maxY = pr.height - ir.height;
+      tok.el.style.left = Math.min(Math.max(x, 0), maxX) + "px";
+      tok.el.style.top  = Math.min(Math.max(y, 0), maxY) + "px";
+    });
+  });
+</script>
+</body>
+</html>
