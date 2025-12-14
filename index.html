@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ISGylation Mini Game</title>
+  <title>Escalation</title>
   <style>
     :root { --pad: 14px; }
 
@@ -254,8 +254,8 @@
 
 <body>
   <div class="card">
-    <h1>ISGylation: tag all ISGylatable proteins</h1>
-    <p>Drag peanut-shaped <b>ISG15</b> (with <b>GG</b>) onto the <b>K</b> nub. The hint appears only when <b>all ISGylatable proteins</b> are ISGylated.</p>
+    <h1>Prove your knowledge of ISGylation</h1>
+    <p>Drag ISG15 and conjugate to the proteins that are usually ISGylated</p>
 
     <div class="play" id="play" aria-label="Play area"></div>
 
@@ -286,9 +286,7 @@
 <script>
   // ===== Customizable message =====
   const DEFAULT_MESSAGE =
-`Your present is hidden:
-👉 (edit this message in index.html)
-or set it via the URL like ?msg=Your%20present%20is%20...`;
+`Your present is hidden in your second drawer`;
 
   const params = new URLSearchParams(location.search);
   const REVEAL_MESSAGE = params.get("msg") ? decodeURIComponent(params.get("msg")) : DEFAULT_MESSAGE;
