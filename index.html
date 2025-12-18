@@ -254,7 +254,7 @@
 
 <body>
   <div class="card">
-    <h1>Prove your knowledge of ISGylation</h1>
+    <h1>ISGylate your proteins (Note: pay attention to the name of the proteins)</h1>
     <p>Drag ISG15 and conjugate to the proteins that are usually ISGylated</p>
 
     <div class="play" id="play" aria-label="Play area"></div>
@@ -286,7 +286,7 @@
 <script>
   // ===== Customizable message =====
   const DEFAULT_MESSAGE =
-`Your present is hidden in your second drawer`;
+`Congrats, first part passed! Look into your drawers for further clue...`;
 
   const params = new URLSearchParams(location.search);
   const REVEAL_MESSAGE = params.get("msg") ? decodeURIComponent(params.get("msg")) : DEFAULT_MESSAGE;
